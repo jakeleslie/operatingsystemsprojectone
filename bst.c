@@ -122,7 +122,10 @@ void *parallel_insert_worker(void *ptr) {
 
   // TODO: Fix the code below.
   for (int i = min; i < max; i++) {
+    pthread_mutex_t lock;
+    pthread_mutex_lock(&lock); //added this
     bst_insert(arr[i], root);
+    pthread_mutex_unlock(&lock); //added this
   }
 
   return NULL;
@@ -179,7 +182,6 @@ int main() {
   int *arr = malloc(sizeof(int) * count);
   struct timeval stop, start;
   struct bst_node *root = NULL;
-
   // Test 1
   printf("Performing simple insert test:\n");
   srand(48221);
