@@ -101,6 +101,14 @@ int bst_validate(struct bst_node *leaf) {
 //    ptr is an array of pointers to the parameters of the function, parsed in the first few lines of the program.
 // This function inserts the elements [min, max) of arr into the tree specified by root.
 // It must do so in a way that is thread-safe. Meaning, that multiple instances of this function will run at the same time.
+
+/*Your task is to correct the implementation of the parallel_insert_worker function. Currently, when a bulk insert occurs (bst_bulk_insert), 
+a number of threads are created and all use the tree variable at the same time, stepping over each other. 
+You must add locking such that the program finishes its tests successfully every single time. 
+One caveat is that multiple threads must be inserting at the same time to gain the performance improvement your manager seeks.
+ So simply grabbing a global lock once per inserted element will not be sufficient! */
+
+
 void *parallel_insert_worker(void *ptr) {
   // Parse the arguments
   void **ptr_arr = (void **)ptr;
