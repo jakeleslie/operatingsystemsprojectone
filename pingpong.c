@@ -1,36 +1,47 @@
 #include <pthread.h>
 #include <stdio.h>
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int check = 0;
+//int pthread_cond_init(pthread_cond_t *cv, const pthread_condattr_t *cattr);
+//int	pthread_cond_wait(pthread_cond_t *cv,pthread_mutex_t *mutex);
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+volatile int check = 0;
+pthread_cond_t cv;
+pthread_condattr_t cattr;
+
+//three operatings: wait, broadcast, and signal
+// int ret;
+
+// ret = pthread_cond_init(&cv, NULL);
+
+// ret = pthread_cond_init(&cv, &cattr);
+
+//wait on a condition variable, probably what i want to print the stuff i need
+//ret = pthread_cond_wait(&cv, &mp);
 
 void *ping_func(void *ptr) {
-  for (int i = 0; i < 10000; i++) {
-    pthread_mutex_lock(&mutex); //at beginning of for loop lock the thread. have to have a condition that happens where it causes it to unlock and prints its output. probably the pthread_cond_t
-
-    if(check % 2 == 0){ //this condition should go through and then it should unlock the thread print its output and relock again
-    pthread_mutex_unlock(&mutex);
+  for (int i = 0; i < 10000; i++) { //go through the loop
+    pthread_mutex_lock(&mutex); //should keep locking
+    //if(check % 2 == 0){ //this condition should go through and print
     printf("ping\n");
-
-    }
-    ++check;
+    //}
     pthread_mutex_unlock(&mutex);
-
+    //++check;
+    pthread_cond_signal(&cv);
     }
     return NULL;
   }
 
 
 void *pong_func(void *ptr) {
+  pthread_mutex_lock(&mutex); //start this locked since i want ping to go first, or put inside loop?
   for (int i = 0; i < 10000; i++) {
-    pthread_mutex_lock(&mutex); //at beginning of for loop lock the thread. have to have a condition that happens where it causes it to unlock and prints its output. probably the pthread_cond_t
   
-    if(check % 2 == 1){ //this condition should go through and then it should unlock the thread print its output and relock again
-    pthread_mutex_unlock(&mutex);
-
+   // if(check % 2 == 1){ //this condition should go through and then it should unlock the thread print its output and relock again
     printf("pong\n");
-    }
-    ++check;
+    pthread_cond_wait(&cv, &mutex); //in order to trigger we need a signal from something else
+    //}
+    //++check;
     pthread_mutex_unlock(&mutex);
 
   }
@@ -48,16 +59,3 @@ int main() {
 
   return 0;
 }
-
-/* goal is to get our output to be
-ping
-pong
-ping 
-pong
-...
-
-need to use a cv and pthread_cond_t and a mutex to get this to work
-
-*/
-
-//what i could do is, each time one i added to the ping or pong lock it and unlock it
