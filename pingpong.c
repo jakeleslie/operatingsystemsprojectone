@@ -1,48 +1,59 @@
 #include <pthread.h>
 #include <stdio.h>
 
-//int pthread_cond_init(pthread_cond_t *cv, const pthread_condattr_t *cattr);
-//int	pthread_cond_wait(pthread_cond_t *cv,pthread_mutex_t *mutex);
+// int pthread_cond_init(pthread_cond_t *cv, const pthread_condattr_t *cattr);
+// int	pthread_cond_wait(pthread_cond_t *cv,pthread_mutex_t *mutex);
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; //initializing our mutex
+
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER; //initializing our condition variable
+
 volatile int check = 0;
-pthread_cond_t cv;
-pthread_condattr_t cattr;
 
-//three operatings: wait, broadcast, and signal
-// int ret;
+//pthread_condattr_t cattr; -> not sure if required 
 
-// ret = pthread_cond_init(&cv, NULL);
+//three operatings: wait, broadcast, and signal -> not sure if required 
+//int ret; -> not sure if required 
 
-// ret = pthread_cond_init(&cv, &cattr);
+// ret = pthread_cond_init(&cv, NULL); -> not sure if required + does not work
+
+// ret = pthread_cond_init(&cv, &cattr); -> not sure if required  + does not work
 
 //wait on a condition variable, probably what i want to print the stuff i need
-//ret = pthread_cond_wait(&cv, &mp);
+//ret = pthread_cond_wait(&cv, &mp); -> not sure if required 
 
 void *ping_func(void *ptr) {
-  for (int i = 0; i < 10000; i++) { //go through the loop
-    pthread_mutex_lock(&mutex); //should keep locking
-    //if(check % 2 == 0){ //this condition should go through and print
-    printf("ping\n");
-    //}
-    pthread_mutex_unlock(&mutex);
-    //++check;
-    pthread_cond_signal(&cv);
+  
+  for (int i = 0; i < 10000; i++) { 
+  
+    pthread_mutex_lock(&mutex); //lock each loop. this is good
+   
+    if(check % 2 == 0){ //condition to check, not sure if good
+      printf("ping\n");     
+    }
+   
+    check++; //add to check to go to the next
+    pthread_cond_signal(&cv); //then signal 
+    pthread_mutex_unlock(&mutex); //then unlock it. this is good
+    //pthread_cond_wait(&cv, &mutex);
     }
     return NULL;
   }
 
-
+//do not think pong is actually getting signaled if i start
+//it at 1, it should start because it is odd 
 void *pong_func(void *ptr) {
-  pthread_mutex_lock(&mutex); //start this locked since i want ping to go first, or put inside loop?
   for (int i = 0; i < 10000; i++) {
   
-   // if(check % 2 == 1){ //this condition should go through and then it should unlock the thread print its output and relock again
-    printf("pong\n");
+  pthread_mutex_lock(&mutex); //keep locking -> good here
+   
+   if(check%2 == 1){ //this condition should go through and then it should unlock the thread print its output and relock again
     pthread_cond_wait(&cv, &mutex); //in order to trigger we need a signal from something else
-    //}
-    //++check;
-    pthread_mutex_unlock(&mutex);
+    printf("pong\n");
+   }
+   
+    check++;
+    pthread_mutex_unlock(&mutex); //good here
 
   }
   return NULL;
@@ -50,6 +61,7 @@ void *pong_func(void *ptr) {
 
 int main() {
   pthread_t thread1, thread2;
+  //pthread_mutex_init(&mutex, NULL);// NOT SURE IF GOES HERE CUZ OF TOP
 
   pthread_create(&thread1, NULL, *ping_func, NULL); 
   pthread_create(&thread2, NULL, *pong_func, NULL); 
@@ -59,3 +71,7 @@ int main() {
 
   return 0;
 }
+
+
+//to do re-read the documentation, and review the code. think i need to initialize the wait thingy.
+//and move around my lock and unlocks and the if statements

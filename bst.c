@@ -11,6 +11,9 @@
 // The root node can be passed around as a reference to the entire structure.
 // Similarly, a node can be thought of as a reference to the subtree!
 // Null pointers refer to the empty tree
+
+//ask if i have to initialize this mutex, and then wait 
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER; //I SHOULD HAVE TO WAIT FOR THE THREADS
 struct bst_node {
   pthread_mutex_t mutex;  // Mutex for this subtree. If this is held, all children should not be modified by another thread.
   int key_value;          // Value stored in the root node of this subtree.
