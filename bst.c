@@ -13,7 +13,6 @@
 // Null pointers refer to the empty tree
 
 //ask if i have to initialize this mutex, and then wait 
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER; //I SHOULD HAVE TO WAIT FOR THE THREADS
 struct bst_node {
   pthread_mutex_t mutex;  // Mutex for this subtree. If this is held, all children should not be modified by another thread.
   int key_value;          // Value stored in the root node of this subtree.
@@ -126,7 +125,17 @@ void *parallel_insert_worker(void *ptr) {
 
   // TODO: Fix the code below.
   for (int i = min; i < max; i++) {
+    //lock the branches lock node currently on so left and right instead of entire thang have to lock at beginning l l u l u l u u
+    //if i cannot get it, just do lock then unlock need locks and unlocks in the right spot and have to add additional code
+    struct bst_node **leaf = root;
+    int key = arr[i];
+    
+    pthread_mutex_lock(&(*root)->mutex); 
+
     bst_insert(arr[i], root);
+
+    pthread_mutex_unlock(&(*root)->mutex);
+    //unlock at the end 
   }
   return NULL;
 }
