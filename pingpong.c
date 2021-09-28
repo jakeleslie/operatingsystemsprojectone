@@ -4,11 +4,10 @@
 // int pthread_cond_init(pthread_cond_t *cv, const pthread_condattr_t *cattr);
 // int	pthread_cond_wait(pthread_cond_t *cv,pthread_mutex_t *mutex);
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; //initializing our mutex
+pthread_mutex_t mutex;
+pthread_cond_t cv;  
 
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER; //initializing our condition variable
-
-volatile int check = 0;
+volatile int check = 0; //cap this somewher maybe
 
 //pthread_condattr_t cattr; -> not sure if required 
 
@@ -25,13 +24,13 @@ volatile int check = 0;
 void *ping_func(void *ptr) {
   
   for (int i = 0; i < 10000; i++) { 
-  
+
     pthread_mutex_lock(&mutex); //lock each loop. this is good
    
-    if(check % 2 == 0){ //condition to check, not sure if good
-      printf("ping\n");     
+    while(check % 2 == 1){ //great condition
+      pthread_cond_wait(&cv, &mutex);    
     }
-   
+    printf("ping\n"); 
     check++; //add to check to go to the next
     pthread_cond_signal(&cv); //then signal 
     pthread_mutex_unlock(&mutex); //then unlock it. this is good
@@ -45,23 +44,23 @@ void *ping_func(void *ptr) {
 void *pong_func(void *ptr) {
   for (int i = 0; i < 10000; i++) {
   
-  pthread_mutex_lock(&mutex); //keep locking -> good here
-   
-   if(check%2 == 1){ //this condition should go through and then it should unlock the thread print its output and relock again
-    pthread_cond_wait(&cv, &mutex); //in order to trigger we need a signal from something else
-    printf("pong\n");
+  pthread_mutex_lock(&mutex); //good here
+  
+   while(check % 2 == 0){ //great condition
+    pthread_cond_wait(&cv, &mutex); //in the right spot 
    }
-   
+    printf("pong\n");
     check++;
+    pthread_cond_signal(&cv); //then signal 
     pthread_mutex_unlock(&mutex); //good here
-
   }
   return NULL;
 }
 
 int main() {
   pthread_t thread1, thread2;
-  //pthread_mutex_init(&mutex, NULL);// NOT SURE IF GOES HERE CUZ OF TOP
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&cv, NULL);
 
   pthread_create(&thread1, NULL, *ping_func, NULL); 
   pthread_create(&thread2, NULL, *pong_func, NULL); 
