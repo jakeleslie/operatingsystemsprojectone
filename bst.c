@@ -11,8 +11,6 @@
 // The root node can be passed around as a reference to the entire structure.
 // Similarly, a node can be thought of as a reference to the subtree!
 // Null pointers refer to the empty tree
-
-//ask if i have to initialize this mutex, and then wait 
 struct bst_node {
   pthread_mutex_t mutex;  // Mutex for this subtree. If this is held, all children should not be modified by another thread.
   int key_value;          // Value stored in the root node of this subtree.
@@ -103,15 +101,6 @@ int bst_validate(struct bst_node *leaf) {
 //    ptr is an array of pointers to the parameters of the function, parsed in the first few lines of the program.
 // This function inserts the elements [min, max) of arr into the tree specified by root.
 // It must do so in a way that is thread-safe. Meaning, that multiple instances of this function will run at the same time.
-//Since they run at the same time we have to find a way to get this function to lock and run so they do not step over each other.
-
-/*Your task is to correct the implementation of the parallel_insert_worker function. Currently, when a bulk insert occurs (bst_bulk_insert), 
-a number of threads are created and all use the tree variable at the same time, stepping over each other. 
-You must add locking such that the program finishes its tests successfully every single time. 
-One caveat is that multiple threads must be inserting at the same time to gain the performance improvement your manager seeks.
- So simply grabbing a global lock once per inserted element will not be sufficient! */
-
-
 void *parallel_insert_worker(void *ptr) {
   // Parse the arguments
   void **ptr_arr = (void **)ptr;
@@ -125,18 +114,30 @@ void *parallel_insert_worker(void *ptr) {
 
   // TODO: Fix the code below.
   for (int i = min; i < max; i++) {
-    //lock the branches lock node currently on so left and right instead of entire thang have to lock at beginning l l u l u l u u
-    //if i cannot get it, just do lock then unlock need locks and unlocks in the right spot and have to add additional code
+
     struct bst_node **leaf = root;
     int key = arr[i];
-    
-    pthread_mutex_lock(&(*root)->mutex); 
 
-    bst_insert(arr[i], root);
+    pthread_mutex_lock(&(*root)->mutex);
 
+    while(1) {
+      if (*leaf == NULL) {
+        *leaf = (struct bst_node *)malloc(sizeof(struct bst_node));
+        pthread_mutex_init(&(*leaf)->mutex, NULL);
+        (*leaf)->key_value = key;
+        // Children are initially empty trees
+        (*leaf)->left = NULL;
+        (*leaf)->right = NULL;
+        break;
+      } else if (key < (*leaf)->key_value) { // Traverse leftward if the value is smaller than the root's
+        leaf =  &(*leaf)->left;
+      } else if (key > (*leaf)->key_value) { // Traverse rightward if the value is larger than the root's
+        leaf =  &(*leaf)->right;
+      }
+    }
     pthread_mutex_unlock(&(*root)->mutex);
-    //unlock at the end 
   }
+
   return NULL;
 }
 
@@ -191,6 +192,7 @@ int main() {
   int *arr = malloc(sizeof(int) * count);
   struct timeval stop, start;
   struct bst_node *root = NULL;
+
   // Test 1
   printf("Performing simple insert test:\n");
   srand(48221);
@@ -225,7 +227,8 @@ int main() {
   for (int i = 0; i < count; i++) {
     arr[i] = rand();
   }
-  bst_bulk_insert(count, arr, &root, 8);
+  bst_insert(arr[0], &root);
+  bst_bulk_insert(count-1, arr+1, &root, 8);
   assert(bst_validate(root) == count);
   printf("\t PASS\n");
 
@@ -243,6 +246,7 @@ int main() {
   printf("Inserted %d elements total.\n", bst_validate(root));
 
   assert(bst_validate(root) == count*2);
+  printf("\t PASS\n");
 
   return 0;
 }
