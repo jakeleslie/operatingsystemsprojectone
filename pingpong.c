@@ -26,6 +26,7 @@ void *ping_func(void *ptr) {
 
 void *pong_func(void *ptr) {
   for (int i = 0; i < 10000; i++) {
+
   pthread_mutex_lock(&mutex); //good here
   
    while(check % 2 == 0){ //great condition
@@ -41,6 +42,7 @@ void *pong_func(void *ptr) {
 
 int main() {
   pthread_t thread1, thread2;
+  
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cv, NULL);
 
