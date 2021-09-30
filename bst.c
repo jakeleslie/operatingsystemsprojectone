@@ -118,9 +118,12 @@ void *parallel_insert_worker(void *ptr) {
     struct bst_node **leaf = root;
     int key = arr[i];
 
-   // pthread_mutex_lock(&(*root)->mutex); //added this, it locks the entire tree but we do not want this we want to lock specific threads, but this will
+    pthread_mutex_lock(&(*root)->mutex); //added this, it locks the entire tree but we do not want this we want to lock specific threads, but this will
+    
+    pthread_mutex_t* parent = (&(*root)->mutex);
 
     while(1) {
+      printf("%d\n", *leaf);
       if (*leaf == NULL) { //if null run this to add values to it 
         *leaf = (struct bst_node *)malloc(sizeof(struct bst_node));
         pthread_mutex_init(&(*leaf)->mutex, NULL); //code should go under here, because this creates our leaf mutex 
@@ -128,24 +131,36 @@ void *parallel_insert_worker(void *ptr) {
         // Children are initially empty trees
         (*leaf)->left = NULL;
         (*leaf)->right = NULL;
+        pthread_mutex_unlock(parent);
         break;
       } else if (key < (*leaf)->key_value) { // Traverse leftward if the value is smaller than the root's
-        while((*leaf)->left){
-        pthread_mutex_lock(&(*leaf)->mutex); //add
+       if((*leaf)->left != NULL){
+        pthread_mutex_lock(&(*leaf)->left->mutex); //add
         leaf =  &(*leaf)->left;
-        pthread_mutex_unlock(&(*leaf)->mutex); //add
-        }
-        
+        pthread_mutex_unlock(parent);
+        parent = (&(*leaf)->mutex);
+       }
+       else{
+         //value pointed to by leaf = NULL
+         *leaf = NULL;
+       }
+
       } else if (key > (*leaf)->key_value) { // Traverse rightward if the value is larger than the root's
-        while((*leaf)->right){
-        pthread_mutex_lock(&(*leaf)->mutex); //addition
+        
+        if((*leaf)->right != NULL){
+        pthread_mutex_lock(&(*leaf)->right->mutex); //addition
         leaf =  &(*leaf)->right;
-        pthread_mutex_unlock(&(*leaf)->mutex); //add
+        pthread_mutex_unlock(parent);
+        parent = (&(*leaf)->mutex);
         }
-       
-      }
+        else{
+          *leaf = NULL;
+        }
+      }//hold the lock as you enter 
+      
     }
-  //  pthread_mutex_unlock(&(*root)->mutex); //added
+  //keep track of parent cna use ptr to mutex form, and then unlock it. points to the lock at the beginning of the else 
+  //update parent, at the correct time and check what it is 
   }
 
   return NULL;
