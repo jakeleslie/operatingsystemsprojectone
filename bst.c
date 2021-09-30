@@ -1,3 +1,4 @@
+// Jake Leslie Operating Systems 29 September 2021
 #include <assert.h>
 #include <limits.h>
 #include <pthread.h>
@@ -118,50 +119,52 @@ void *parallel_insert_worker(void *ptr) {
     struct bst_node **leaf = root;
     int key = arr[i];
 
-    pthread_mutex_lock(&(*root)->mutex); //added this, it locks the entire tree but we do not want this we want to lock specific threads, but this will
+    pthread_mutex_lock(&(*root)->mutex); //We want to lock the root node at the beginning, before pointing to another branch.
     
-    pthread_mutex_t* parent = (&(*root)->mutex);
+    pthread_mutex_t* parent = (&(*root)->mutex); //Creating a parent lock, to satisfy hand over hand locking. 
+    //We set it to the root mutex because that is the first lock and the top level one that will end up having to be unlocked.
 
     while(1) {
-      printf("%d\n", *leaf);
+      
       if (*leaf == NULL) { //if null run this to add values to it 
         *leaf = (struct bst_node *)malloc(sizeof(struct bst_node));
-        pthread_mutex_init(&(*leaf)->mutex, NULL); //code should go under here, because this creates our leaf mutex 
+        pthread_mutex_init(&(*leaf)->mutex, NULL); 
         (*leaf)->key_value = key;
         // Children are initially empty trees
         (*leaf)->left = NULL;
         (*leaf)->right = NULL;
-        pthread_mutex_unlock(parent);
+        pthread_mutex_unlock(parent); //we start off by unlocking the parent, because we will need to go to other nodes.
         break;
-      } else if (key < (*leaf)->key_value) { // Traverse leftward if the value is smaller than the root's
-       if((*leaf)->left != NULL){
-        pthread_mutex_lock(&(*leaf)->left->mutex); //add
-        leaf =  &(*leaf)->left;
-        pthread_mutex_unlock(parent);
-        parent = (&(*leaf)->mutex);
+      } else if (key < (*leaf)->key_value) { 
+       if((*leaf)->left != NULL){ //If the left leaf's value is not null, we will lock the left mutex.
+        pthread_mutex_lock(&(*leaf)->left->mutex); //locking the leaf left mutex.
+        leaf =  &(*leaf)->left; //setting the leaf to the value.
+        pthread_mutex_unlock(parent); //We unlock parent here, because otherwise it will hang.
+        parent = (&(*leaf)->mutex); //We then set leaf to the leaf mutex.
        }
        else{
-         //value pointed to by leaf = NULL
+         //Set the leaf to null if it is null.
          *leaf = NULL;
        }
 
       } else if (key > (*leaf)->key_value) { // Traverse rightward if the value is larger than the root's
         
         if((*leaf)->right != NULL){
-        pthread_mutex_lock(&(*leaf)->right->mutex); //addition
-        leaf =  &(*leaf)->right;
-        pthread_mutex_unlock(parent);
-        parent = (&(*leaf)->mutex);
+        pthread_mutex_lock(&(*leaf)->right->mutex); //Same as above, we lock this beause we want to focus on the thread here.
+        leaf =  &(*leaf)->right; //Setting the leaf to the value inside of leaf right.
+        pthread_mutex_unlock(parent); //Unlocking parent, because we want to be able to keep going, like in hand over hand locking.
+        parent = (&(*leaf)->mutex); //Set this here, so that as we traverse lower we will need to unlock this.
         }
         else{
-          *leaf = NULL;
+          //Set the leaf to null if it is null.
+          *leaf = NULL; 
         }
-      }//hold the lock as you enter 
+      }
       
     }
-  //keep track of parent cna use ptr to mutex form, and then unlock it. points to the lock at the beginning of the else 
-  //update parent, at the correct time and check what it is 
-  }
+      }
+      //This causes a segmentation fault due to an issue with something being set to null.
+      //Understood the logic of the problem, but due to the bug being hard to snuff could not figure it out.
 
   return NULL;
 }
